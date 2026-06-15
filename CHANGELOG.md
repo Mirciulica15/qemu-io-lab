@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`linux-lts` kernel** for the full PC driver set; serial console + root
   auto-login; clean direct boot (no graphical menu).
 - Repository scaffolding: top-level `README`, `.gitignore`, `.gitattributes`,
-  this changelog.
+  this changelog, and an MIT `LICENSE`.
 
 ### Notes
 

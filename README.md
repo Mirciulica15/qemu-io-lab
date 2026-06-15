@@ -87,4 +87,5 @@ mount /dev/sr0 /media/cdrom 2>/dev/null && sh /media/cdrom/check.sh
 
 ## License
 
-Not yet chosen — add a `LICENSE` file before publishing.
+[MIT](LICENSE) © 2026 Mircea Talu — free to use, modify, and redistribute,
+including for teaching.
