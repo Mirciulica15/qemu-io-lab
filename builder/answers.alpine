@@ -1,0 +1,28 @@
+# Unattended Alpine install answerfile for the I/O Systems lab image.
+# Consumed by `setup-alpine -f` inside the live ISO during build-image.sh.
+# Pinned, deterministic — no interactive prompts.
+KEYMAPOPTS="us us"
+HOSTNAMEOPTS="-n iolab"
+DEVDOPTS=mdev
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+    hostname iolab
+"
+DNSOPTS="-n 8.8.8.8"
+TIMEZONEOPTS="-z UTC"
+PROXYOPTS=none
+# use the first built-in mirror non-interactively (dl-cdn); provision.sh pins
+# the exact main+community repos afterward, so this just needs to be unattended
+APKREPOSOPTS="-1"
+SSHDOPTS="-c openssh"
+NTPOPTS="-c chrony"
+# no extra user and no SSH keys prompted (auto-login as root; provision sets pw)
+USEROPTS=none
+ROOTSSHKEY=none
+# full-disk 'sys' install to the virtio disk -> vda1=/boot, vda2=swap, vda3=/
+DISKOPTS="-m sys /dev/vda"
+LBUOPTS=none
+APKCACHEOPTS=none

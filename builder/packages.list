@@ -1,0 +1,48 @@
+# Packages installed into the lab image (provision.sh: apk add).
+# One package per line; blank lines and # comments ignored.
+
+# Kernel: full/generic PC kernel (has i2c-i801, pata_legacy, ata_piix, ...)
+# plus matching headers for building out-of-tree modules (the edu driver lab).
+linux-lts
+linux-lts-dev
+
+# Build toolchain
+build-base
+
+# Bus / device inspection
+pciutils
+nvme-cli
+usbutils
+i2c-tools
+
+# Storage (ATA / SCSI / filesystems / partitioning)
+hdparm
+smartmontools
+lsscsi
+util-linux
+parted
+e2fsprogs
+dosfstools
+
+# Modules, tracing, hardware info
+kmod
+strace
+ltrace
+dmidecode
+lshw
+
+# Serial-port tooling
+setserial
+picocom
+
+# Usability (shell, editor, docs, VCS)
+bash
+nano
+git
+less
+file
+tree
+grep
+findutils
+mandoc
+man-pages

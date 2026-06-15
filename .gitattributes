@@ -1,0 +1,17 @@
+# Normalize line endings: LF in the repo for everything text by default.
+* text=auto eol=lf
+
+# Shell / Python / docs are always LF.
+*.sh    text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.list  text eol=lf
+*.alpine text eol=lf
+
+# Windows batch must be CRLF to run reliably on cmd.exe.
+*.bat   text eol=crlf
+
+# Disk / media images are binary (also .gitignored, but be explicit).
+*.qcow2 binary
+*.img   binary
+*.iso   binary
