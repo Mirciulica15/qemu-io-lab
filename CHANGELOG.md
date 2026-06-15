@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- First verified end-to-end build is pending; tag `0.1.0` once `build-image.sh`
-  completes and `check.sh` reports all subjects present.
+- Verified end-to-end on 2026-06-15: `build-image.sh` builds from scratch and
+  `check.sh` reports **all subjects present (0 failures)**. Ready to tag `0.1.0`.
 - The original hand-built proof-of-concept image (`os.qcow2`) is superseded by the
-  reproducible builder and will be retired.
+  reproducible builder and can be retired.

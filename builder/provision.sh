@@ -51,6 +51,9 @@ echo ">>> auto-load SMBus driver so i2cdetect works out of the box"
 grep -q '^i2c-i801$' /etc/modules || echo i2c-i801 >>/etc/modules
 grep -q '^i2c-dev$' /etc/modules || echo i2c-dev >>/etc/modules
 
+echo ">>> strip any build-time proxy config (shipped image must be proxy-free)"
+rm -f /etc/profile.d/*proxy* 2>/dev/null || true
+
 echo ">>> root password (for su / ssh) + motd + verification script"
 echo "root:iolab" | chpasswd
 printf 'I/O Systems Lab VM. Auto-login as root.\nRun  sh /root/check.sh  to verify all hardware.\n' >/etc/motd

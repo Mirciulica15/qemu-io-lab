@@ -65,6 +65,20 @@ def main():
         print(__doc__)
         return 2
     image = sys.argv[1]
+    here = os.path.dirname(os.path.abspath(image)) or "."
+
+    # scratch backing files for the experiment devices (removed at the end)
+    nvme, sata, usb = (
+        image + ".verifynvme",
+        image + ".verifysata",
+        image + ".verifyusb",
+    )
+    scratch = [nvme, sata, usb]
+    for path in scratch:
+        with open(path, "wb") as fh:
+            fh.truncate(64 * 1024 * 1024)
+
+    # device set mirrors run.sh: edu + NVMe + USB + SATA/ATA + ATAPI CD + 2 serials
     args = [
         "-M",
         "q35",
@@ -79,27 +93,40 @@ def main():
         "-device",
         "edu",
         "-drive",
-        "if=none,id=nvm,file=/dev/null,format=raw",
+        f"if=none,id=nvm,file={nvme},format=raw",
         "-device",
         "nvme,serial=deadbeef,drive=nvm",
         "-device",
         "qemu-xhci,id=xhci",
+        "-drive",
+        f"if=none,id=usbstick,file={usb},format=raw",
+        "-device",
+        "usb-storage,bus=xhci.0,drive=usbstick",
         "-device",
         "ich9-ahci,id=ahci",
-        "-display",
-        "none",
+        "-drive",
+        f"if=none,id=satadisk,file={sata},format=raw",
+        "-device",
+        "ide-hd,bus=ahci.0,drive=satadisk",
         "-serial",
         "stdio",
+        "-serial",
+        "null",
+        "-display",
+        "none",
         "-monitor",
         "none",
     ]
-    # NVMe needs a real backing file; create a scratch one beside the image.
-    scratch = image + ".verifynvme"
-    with open(scratch, "wb") as fh:
-        fh.truncate(64 * 1024 * 1024)
-    args[args.index("if=none,id=nvm,file=/dev/null,format=raw")] = (
-        f"if=none,id=nvm,file={scratch},format=raw"
-    )
+    cd = os.path.join(here, "labcd.iso")
+    if os.path.exists(cd):
+        args += [
+            "-drive",
+            f"if=none,id=cd,file={cd},format=raw,readonly=on",
+            "-device",
+            "ide-cd,bus=ahci.1,drive=cd",
+        ]
+    else:
+        args += ["-device", "ide-cd,bus=ahci.1"]
 
     p = spawn(args)
     try:
@@ -120,10 +147,11 @@ def main():
             p.wait(timeout=15)
         except Exception:
             p.kill()
-        try:
-            os.remove(scratch)
-        except OSError:
-            pass
+        for path in scratch:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
     print(f"\n=== verify: {fails} [FAIL] line(s) ===")
     return 0 if fails == 0 else 1

@@ -4,12 +4,11 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Build / run artifacts (regenerated; never commit)
+# Build / run artifacts — all regenerated; NEVER commit (some are hundreds of MB)
 dist/
 *.qcow2
 *.img
-*.verifynvme       # scratch NVMe backing created by builder/verify.py
-labcd.iso          # generated from check.sh by builder/make-labcd.sh
-
-# Large, downloadable installer ISO (pinned in builder/build-image.sh)
-alpine-virt-*.iso
+*.iso
+*.zip
+# transient scratch backing files from builder/verify.py
+*.verify*

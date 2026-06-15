@@ -10,12 +10,25 @@ if [ -n "$PROXY" ]; then
 fi
 
 echo ">>> unattended base install to /dev/vda (mirror: $MIRROR)"
-# point the answerfile at the chosen mirror (base URL; setup-apkrepos appends the branch)
 cp /payload/answers.alpine /tmp/answers
-sed -i "s#^APKREPOSOPTS=.*#APKREPOSOPTS=\"$MIRROR\"#" /tmp/answers
+# if building behind a proxy, tell setup-alpine to USE it (otherwise its proxy
+# step clears http_proxy). provision.sh strips it back out of the final image.
+if [ -n "$PROXY" ]; then
+	sed -i "s#^PROXYOPTS=.*#PROXYOPTS=\"$PROXY\"#" /tmp/answers
+fi
+# setup-apkrepos probes a mirror LIST over wget — flaky, and broken through a
+# proxy ("wget: error getting response"). Replace it with a stub that pins our
+# mirror and runs `apk update` (apk honors http_proxy reliably). This is THE fix
+# for the build hanging at "APK Mirror".
+SAR="$(command -v setup-apkrepos)"
+cat >"$SAR" <<EOF
+#!/bin/sh
+printf '%s\n%s\n' "$MIRROR/$ALPINE_BRANCH/main" "$MIRROR/$ALPINE_BRANCH/community" >/etc/apk/repositories
+exec apk update
+EOF
+chmod +x "$SAR"
 # ERASE_DISKS skips the disk-wipe confirmation; the printf answers the only
-# remaining interactive prompt (root password, asked twice). Everything else
-# is covered by the answerfile, so NO 'yes' firehose (that corrupts prompts).
+# remaining interactive prompt (root password, asked twice).
 export ERASE_DISKS=/dev/vda
 printf 'iolab\niolab\n' | setup-alpine -f /tmp/answers
 
