@@ -1,0 +1,94 @@
+name: CI
+
+# Trunk-based: build on every push to main. A v* tag additionally packages
+# and publishes the student kit. Heavy work runs only after lint passes.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Fast static checks — no QEMU, no network. Reproduce locally with `act -j lint`.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: shellcheck builder/*.sh ./*.sh kit/run.sh
+
+      - name: Install ruff + yamllint
+        run: pipx install ruff && pipx install yamllint
+
+      - name: ruff (lint + format check)
+        run: |
+          ruff check builder/*.py
+          ruff format --check builder/*.py
+
+      - name: py_compile
+        run: python3 -m py_compile builder/*.py
+
+      - name: yamllint (workflow files)
+        run: yamllint -c .yamllint.yml .github/workflows
+
+      - name: Install actionlint
+        run: |
+          curl -fsSL -o /tmp/download-actionlint.bash \
+            https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash
+          bash /tmp/download-actionlint.bash 1.7.12
+
+      - name: actionlint
+        run: ./actionlint -color
+
+  # The reproducibility gate: build the image from scratch under TCG and run
+  # check.sh inside it (builder/verify.py). On a v* tag, also package + release.
+  # Body is a thin wrapper over committed scripts — run them locally to test.
+  build:
+    needs: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write              # only exercised on tags, to create the release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils
+
+      - name: Cache Alpine ISO
+        id: iso-cache
+        uses: actions/cache@v4
+        with:
+          path: alpine-virt-3.21.0-x86_64.iso
+          key: alpine-iso-3.21.0
+
+      - name: Download Alpine ISO
+        if: steps.iso-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o alpine-virt-3.21.0-x86_64.iso \
+            https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-virt-3.21.0-x86_64.iso
+
+      # build-image.sh verifies the ISO against the pinned ISO_SHA256, builds the
+      # image, then runs verify.py (boots it, runs check.sh, fails on any [FAIL]).
+      - name: Build and verify image
+        run: ./builder/build-image.sh
+
+      # ---- release: tags only ----
+      - name: Install packaging tools
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: sudo apt-get install -y --no-install-recommends xorriso zip
+
+      - name: Package student kit
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: ./package.sh
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" iolab-student-kit.zip --generate-notes

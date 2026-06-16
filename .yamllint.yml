@@ -1,0 +1,8 @@
+# Relaxed yamllint for CI workflow files.
+extends: default
+rules:
+  document-start: disable          # GitHub Actions files don't use a `---` marker
+  truthy:
+    check-keys: false              # don't flag GitHub Actions' `on:` key
+  line-length:
+    max: 120

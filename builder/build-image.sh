@@ -16,7 +16,7 @@ ALPINE_VER=3.21.0
 ALPINE_BRANCH=v3.21
 ISO="alpine-virt-${ALPINE_VER}-x86_64.iso"
 ISO_URL="https://dl-cdn.alpinelinux.org/alpine/${ALPINE_BRANCH}/releases/x86_64/${ISO}"
-ISO_SHA256="__FILL_ME__"
+ISO_SHA256="adf9ecc5b8ec865721dd875222b9b55f250ed594c69ebf1326451595878ce051"
 OUT="iolab-base.qcow2"
 SIZE="8G"
 # Mirror the guest installs from. Override if dl-cdn is slow/blocked for you, e.g.

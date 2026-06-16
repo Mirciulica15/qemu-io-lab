@@ -80,6 +80,34 @@ mount /dev/sr0 /media/cdrom 2>/dev/null && sh /media/cdrom/check.sh
 - **python3** (drives the build)
 - Building: an internet connection (the guest fetches packages from an Alpine mirror)
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` (and is manually
+dispatchable). It has two jobs:
+
+- **lint** — `shellcheck` the shell scripts, `ruff check` + `ruff format --check`
+  + `py_compile` the Python, and `yamllint` + `actionlint` the workflow itself.
+- **build** — `needs: lint`, so it only runs once lint is green. Installs QEMU,
+  fetches the checksum-pinned Alpine ISO, and runs `./builder/build-image.sh`
+  (build under TCG + `verify.py` acceptance test). On a `v*` tag it additionally
+  runs `./package.sh` and attaches `iolab-student-kit.zip` to a GitHub Release.
+
+So a normal `git push` builds and verifies the image; `git push origin v0.1.0`
+also publishes the student kit. The build runs exactly once either way.
+
+### Testing it locally
+
+Every CI step is a thin wrapper over a committed script, so running the script
+locally *is* testing the step:
+
+- **lint** — run the actual job in Docker: `act -j lint`. Or run the tools
+  directly: `shellcheck builder/*.sh ./*.sh kit/run.sh`, `ruff check builder/*.py`,
+  `actionlint`, `yamllint -c .yamllint.yml .github/workflows`.
+- **build** — `./builder/build-image.sh` is the job body; run it as you already
+  do. (`act` can't usefully run this — it would nest QEMU/TCG inside Docker.)
+- **release** — `./package.sh` exercises the packaging; only the `gh release`
+  upload is CI-only.
+
 ## More
 
 - Building & customizing the image: [`builder/README.md`](builder/README.md)
