@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-16
+
 ### Added
 
 - **Reproducible image builder** (`builder/`): unattended Alpine install + declarative
@@ -24,10 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   auto-login; clean direct boot (no graphical menu).
 - Repository scaffolding: top-level `README`, `.gitignore`, `.gitattributes`,
   this changelog, and an MIT `LICENSE`.
+- **Continuous integration** (`.github/workflows/ci.yml`): a `lint` job
+  (shellcheck, ruff check + format, yamllint, actionlint) gating a `build` job
+  that builds and verifies the image under TCG on every push to `main`, and on a
+  `v*` tag additionally runs `package.sh` and attaches `iolab-student-kit.zip`
+  to a GitHub Release.
 
 ### Notes
 
 - Verified end-to-end on 2026-06-15: `build-image.sh` builds from scratch and
-  `check.sh` reports **all subjects present (0 failures)**. Ready to tag `0.1.0`.
+  `check.sh` reports **all subjects present (0 failures)**. The packaged student
+  kit was re-verified on 2026-06-16 (unzipped and booted headless, 0 failures).
 - The original hand-built proof-of-concept image (`os.qcow2`) is superseded by the
   reproducible builder and can be retired.
