@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`edu` device driver lab** (`labs/edu/`): a deep skeleton PCI driver
+  (`edu.c`), `Makefile`, and a lab-brief `README.md` for students to implement
+  MMIO, interrupt, and DMA handling against QEMU's `edu` device. Baked into the
+  guest at `/root/labs/edu/`. A complete reference solution is kept
+  instructor-side (`labs/edu/solution/`) and is **not** shipped in the kit.
+
 ## [0.1.1] - 2026-06-17
 
 ### Fixed
