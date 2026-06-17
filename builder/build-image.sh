@@ -48,6 +48,9 @@ echo ">> staging payload"
 PAY="$(mktemp -d "${TMPDIR:-/tmp}/iopay.XXXXXX")"
 trap 'rm -rf "$PAY"' EXIT
 cp builder/answers.alpine builder/packages.list builder/bootstrap.sh builder/provision.sh check.sh "$PAY/"
+# stage the student driver lab for /root/labs/edu/ (the reference solution/ is
+# deliberately NOT included — students never receive it).
+tar -C labs/edu -cf "$PAY/edu-lab.tar" edu.c Makefile README.md
 cat >"$PAY/buildenv" <<EOF
 MIRROR='$MIRROR'
 PROXY='$PROXY'

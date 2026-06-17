@@ -59,6 +59,11 @@ mount -o bind /proc /mnt/proc
 mount -o bind /sys /mnt/sys
 cp /etc/resolv.conf /mnt/etc/resolv.conf
 cp /payload/packages.list /payload/provision.sh /payload/check.sh /payload/buildenv /mnt/root/
+# unpack the student driver lab into the new system, if staged
+if [ -f /payload/edu-lab.tar ]; then
+	mkdir -p /mnt/root/labs/edu
+	tar -C /mnt/root/labs/edu -xf /payload/edu-lab.tar
+fi
 
 echo ">>> provisioning inside the new system"
 chroot /mnt sh /root/provision.sh

@@ -56,7 +56,7 @@ rm -f /etc/profile.d/*proxy* 2>/dev/null || true
 
 echo ">>> root password (for su / ssh) + motd + verification script"
 echo "root:iolab" | chpasswd
-printf 'I/O Systems Lab VM. Auto-login as root.\nRun  sh /root/check.sh  to verify all hardware.\n' >/etc/motd
+printf 'I/O Systems Lab VM. Auto-login as root.\nVerify hardware:  sh /root/check.sh\nDriver lab:       /root/labs/edu/  (read README.md)\n' >/etc/motd
 chmod +x /root/check.sh 2>/dev/null || true
 
 echo "PROVISION_DONE_OK"
