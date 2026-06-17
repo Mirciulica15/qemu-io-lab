@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Windows launcher line endings:** `package.sh` now emits `run.bat` with CRLF
+  (idempotently, regardless of git checkout), so the shipped `.bat` runs reliably
+  under `cmd.exe`. The 0.1.0 kit shipped `run.bat` with LF endings.
+
+### Added
+
+- **Windows CI smoke test** (`windows-smoke` job): on a `v*` tag, boots the
+  packaged kit via `run.bat` on a `windows-latest` runner (headless, TCG) and
+  asserts it reaches the auto-login root shell — continuously verifying the
+  Windows launcher, which `build`/`verify.py` (Linux/macOS) cannot exercise.
+
 ## [0.1.0] - 2026-06-16
 
 ### Added

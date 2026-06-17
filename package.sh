@@ -18,7 +18,11 @@ rm -rf "$OUT" "$ZIP"; mkdir -p "$OUT"
 echo ">> Compressing $SRC -> $OUT/iolab-base.qcow2 (a minute or two)..."
 qemu-img convert -O qcow2 -c "$SRC" "$OUT/iolab-base.qcow2"
 
-cp kit/run.sh kit/run.bat kit/README.md "$OUT"/
+cp kit/run.sh kit/README.md "$OUT"/
+# Windows .bat MUST be CRLF for cmd.exe (its ^ line-continuations + if() blocks can
+# misbehave on LF-only files). Emit CRLF explicitly, idempotently, regardless of how
+# git checked the source out. (awk is portable across macOS/BSD and Linux/GNU.)
+awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' kit/run.bat > "$OUT/run.bat"
 builder/make-labcd.sh >/dev/null            # (re)build the ATAPI lab disc from check.sh
 cp labcd.iso "$OUT"/
 chmod +x "$OUT/run.sh"
