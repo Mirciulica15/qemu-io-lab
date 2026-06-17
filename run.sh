@@ -1,29 +1,40 @@
 #!/usr/bin/env bash
 # I/O Systems lab VM — one x86-64 PC with the full bus zoo.
-# Same command for EVERY student regardless of host (Apple Silicon, Intel, Windows, Linux).
-# Requires: qemu (brew install qemu). Guest arch is fixed to x86-64 for parity.
+# Boots the reproducibly-built base image (iolab-base.qcow2, produced by
+# ./builder/build-image.sh) through a personal overlay, so the master is never
+# modified and a broken VM resets in one command. This is the SAME image
+# students get in the kit. Requires: qemu (brew install qemu). Guest arch is
+# fixed to x86-64 for cross-student parity.
 #
 # MODES:
-#   ./run.sh                      boot the PERSISTENT system from os.qcow2 (normal use)
-#   ./run.sh some-linux.iso       boot from the CD/ISO (live session OR to install)
+#   ./run.sh                      boot the built image (via an overlay; normal use)
+#   RESET=1 ./run.sh              discard your overlay (disk.qcow2) and start fresh
+#   ./run.sh some-linux.iso       also attach + boot a CD/ISO (live session)
 #   DUMP=1 ./run.sh               freeze CPU, print the virtual hardware tree, quit
 #
 # TOGGLES:
-#   LEGACY=pci ./run.sh [iso]     add a PCI-IDE (piix3) disk  -> lspci class [0101]
-#   LEGACY=isa ./run.sh [iso]     add a pre-PCI ISA-IDE disk  -> fixed ports 0x1F0/IRQ14
+#   GUI=1 ./run.sh                also open the VGA window
+#   LEGACY=pci ./run.sh           add a PCI-IDE (piix3) disk  -> lspci class [0101]
+#   LEGACY=isa ./run.sh           add a pre-PCI ISA-IDE disk  -> fixed ports 0x1F0/IRQ14
 #
 # shellcheck disable=SC2054  # QEMU device strings legitimately contain commas
 set -euo pipefail
 cd "$(dirname "$0")"
 
 QEMU=qemu-system-x86_64
-ISO="${1:-}"           # path to a bootable Linux ISO, or empty to boot the OS disk
+ISO="${1:-}"           # path to a bootable Linux ISO, or empty to boot the built image
 LEGACY="${LEGACY:-0}"  # 0/off=none, pci/1=PCI-IDE (piix3), isa=pre-PCI ISA-IDE
 DUMP="${DUMP:-0}"      # 1 = freeze + dump hardware tree instead of booting
-GUI="${GUI:-0}"        # 1 = open the VGA window (needed before serial console is set up)
+GUI="${GUI:-0}"        # 1 = open the VGA window
+RESET="${RESET:-0}"    # 1 = discard the overlay before booting
 
-# --- backing storage (created once; all sparse) ---------------------------
-[ -f os.qcow2 ] || qemu-img create -f qcow2 os.qcow2 8G   # PERSISTENT root (/dev/vda)
+# --- built base image (read-only master) + a personal overlay --------------
+# All work lands in the overlay; iolab-base.qcow2 is never modified.
+BASE=iolab-base.qcow2
+DISK=disk.qcow2
+[ -f "$BASE" ] || { echo "ERROR: $BASE not found — run ./builder/build-image.sh first." >&2; exit 1; }
+if [ "$RESET" != 0 ]; then rm -f "$DISK"; echo ">> RESET: overlay discarded; a fresh one will be created."; fi
+[ -f "$DISK"  ] || qemu-img create -f qcow2 -b "$BASE" -F qcow2 "$DISK" >/dev/null
 [ -f nvme.img ] || qemu-img create -f raw  nvme.img 256M  # experiment NVMe SSD
 [ -f sata.img ] || qemu-img create -f raw  sata.img 256M  # experiment SATA/AHCI disk
 [ -f usb.img  ] || qemu-img create -f raw  usb.img  64M   # experiment USB stick
@@ -33,9 +44,9 @@ ARGS=(
   -m 1G
   -accel tcg             # full x86 emulation (no HW accel for x86 guest on Apple Silicon)
 
-  # --- PERSISTENT OS disk (paravirtual virtio-blk) -> /dev/vda in the guest
+  # --- the built OS, via a personal overlay (paravirtual virtio-blk) -> /dev/vda
   # bootindex=1 makes the firmware boot THIS disk (not the empty experiment disks).
-  -drive if=none,id=osdisk,file=os.qcow2,format=qcow2
+  -drive if=none,id=osdisk,file="$DISK",format=qcow2
   -device virtio-blk-pci,drive=osdisk,bootindex=1
 
   # --- the educational PCI device: MMIO + IRQ + DMA, for driver-writing labs
@@ -99,16 +110,14 @@ if [ "$DUMP" != 0 ]; then
   echo ">> DUMP mode: freezing CPU and printing the virtual hardware tree."
   printf 'info pci\ninfo qtree\nquit\n' | "$QEMU" "${ARGS[@]}" -S
 elif [ -n "$ISO" ]; then
-  echo ">> Booting from ISO: $ISO   (install with setup-alpine, or just explore)"
+  echo ">> Booting from ISO: $ISO   (live session / exploration)"
   echo ">> Ctrl-a x = quit QEMU   |   Ctrl-a c = QEMU monitor"
-  # CD at bootindex=0 -> tried before the OS disk (so the installer/live boots).
+  # CD at bootindex=0 -> tried before the OS disk (so the live ISO boots).
   exec "$QEMU" "${ARGS[@]}" \
     -drive if=none,id=cd0,file="$ISO",media=cdrom \
     -device ide-cd,bus=ahci.1,drive=cd0,bootindex=0
 else
-  echo ">> Booting the PERSISTENT system from os.qcow2 (virtio /dev/vda, bootindex=1)."
-  echo ">> (If you see 'No bootable device', the install didn't complete — re-run"
-  echo ">>  ./run.sh alpine-virt-*.iso and finish setup-alpine on /dev/vda, mode sys.)"
+  echo ">> Booting the built image (iolab-base.qcow2) via overlay $DISK. Lab: /root/labs/edu/"
   echo ">> Ctrl-a x = quit QEMU   |   Ctrl-a c = QEMU monitor"
   exec "$QEMU" "${ARGS[@]}"
 fi
