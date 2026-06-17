@@ -92,3 +92,51 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "${GITHUB_REF_NAME}" iolab-student-kit.zip --generate-notes
+
+      - name: Upload student kit (consumed by windows-smoke)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-kit
+          path: iolab-student-kit.zip
+          retention-days: 1
+
+  # Smoke-test the Windows launcher (run.bat) on a real Windows runner — tags only.
+  # The image is platform-independent and already verified on Linux (build) and macOS;
+  # this exercises the Windows-specific surface: run.bat under cmd.exe (CRLF + the ^
+  # line-continuations) and QEMU-for-Windows accepting the device set — by booting the
+  # shipped kit headless and asserting it reaches the auto-login root shell.
+  windows-smoke:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    steps:
+      - name: Download student kit
+        uses: actions/download-artifact@v4
+        with:
+          name: student-kit
+
+      - name: Install QEMU
+        run: choco install qemu -y --no-progress
+
+      - name: Unzip kit
+        shell: pwsh
+        run: Expand-Archive -Path iolab-student-kit.zip -DestinationPath kit
+
+      - name: Boot via run.bat and assert auto-login (headless, TCG)
+        shell: pwsh
+        run: |
+          $env:Path += ';C:\Program Files\qemu'
+          Set-Location kit
+          $p = Start-Process -FilePath cmd.exe -ArgumentList '/c run.bat' `
+                 -RedirectStandardOutput serial.log -RedirectStandardError serr.log `
+                 -PassThru -NoNewWindow
+          Start-Sleep -Seconds 360
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          Get-Content serial.log -Tail 30
+          if (Select-String -Path serial.log -Pattern ':~#|login:') {
+            Write-Host 'PASS: run.bat booted the VM to an auto-login root shell on Windows.'
+          } else {
+            Write-Error 'FAIL: VM never reached the login prompt via run.bat.'
+            exit 1
+          }
